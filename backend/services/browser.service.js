@@ -84,6 +84,15 @@ async function getPage() {
 }
 
 /**
+ * Get a completely new page (tab) from the persistent context.
+ * Used for concurrent scraping.
+ */
+async function getNewPage() {
+    const context = await getContext();
+    return await context.newPage();
+}
+
+/**
  * Close the browser context.
  */
 async function closeBrowser() {
@@ -232,5 +241,6 @@ module.exports = {
     login,
     checkSession,
     humanScroll,
-    humanDelay
+    humanDelay,
+    getNewPage
 };

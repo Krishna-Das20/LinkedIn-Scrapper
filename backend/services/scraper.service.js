@@ -2,7 +2,7 @@
  * Scraper orchestrator — rewritten with multi-page Detail scraping strategy.
  */
 const logger = require('../utils/logger');
-const { getPage, ensureLoggedIn, humanScroll, humanDelay } = require('./browser.service');
+const { getPage, getNewPage, ensureLoggedIn, humanScroll, humanDelay } = require('./browser.service');
 const cacheService = require('./cache.service');
 // const { scrollToBottom } = require('../utils/scroll'); // Deprecated for stealth
 const { randomDelay } = require('../utils/delay');
@@ -73,28 +73,51 @@ async function scrapeProfile(profileUrl) {
         // Accomplishments (Languages, Honors) - grabbing from main for now as they are small
         result.accomplishments = await safeExtract('accomplishments', () => extractAccomplishments(page));
 
-        // ── 2-7. Detail Pages (Randomized Order) ──
+        // ── 2-7. Detail Pages (Parallel Execution) ──
         // Define all detail extractors
         const detailTasks = [
-            { name: 'experience', fn: async () => { await navigateToDetail(page, baseUrl, 'experience'); result.experience = await safeExtract('experience', () => extractExperience(page)); } },
-            { name: 'education', fn: async () => { await navigateToDetail(page, baseUrl, 'education'); result.education = await safeExtract('education', () => extractEducation(page)); } },
-            { name: 'certifications', fn: async () => { await navigateToDetail(page, baseUrl, 'certifications'); result.certifications = await safeExtract('certifications', () => extractCertifications(page)); } },
-            { name: 'skills', fn: async () => { await navigateToDetail(page, baseUrl, 'skills'); result.skills = await safeExtract('skills', () => extractSkills(page)); } },
-            { name: 'projects', fn: async () => { await navigateToDetail(page, baseUrl, 'projects'); result.projects = await safeExtract('projects', () => extractProjects(page)); } },
-            { name: 'interests', fn: async () => { await navigateToDetail(page, baseUrl, 'interests'); result.interests = await safeExtract('interests', () => extractInterests(page)); } }
+            { name: 'experience', fn: (p) => extractExperience(p), targetField: 'experience' },
+            { name: 'education', fn: (p) => extractEducation(p), targetField: 'education' },
+            { name: 'certifications', fn: (p) => extractCertifications(p), targetField: 'certifications' },
+            { name: 'skills', fn: (p) => extractSkills(p), targetField: 'skills' },
+            { name: 'projects', fn: (p) => extractProjects(p), targetField: 'projects' },
+            { name: 'interests', fn: (p) => extractInterests(p), targetField: 'interests' }
         ];
 
-        // Shuffle tasks
-        for (let i = detailTasks.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [detailTasks[i], detailTasks[j]] = [detailTasks[j], detailTasks[i]];
+        // Process tasks in batches to manage concurrency
+        const CONCURRENCY_LIMIT = 3;
+        const taskChunks = [];
+        for (let i = 0; i < detailTasks.length; i += CONCURRENCY_LIMIT) {
+            taskChunks.push(detailTasks.slice(i, i + CONCURRENCY_LIMIT));
         }
 
-        // Execute sequentially
-        for (const task of detailTasks) {
-            logger.info(`Executing step: ${task.name}`);
-            await task.fn();
-            await humanDelay(); // Stealth delay between sections
+        for (const chunk of taskChunks) {
+            logger.info(`Starting parallel batch: ${chunk.map(t => t.name).join(', ')}`);
+
+            const promises = chunk.map(async (task) => {
+                let taskPage = null;
+                try {
+                    // Stagger start times to avoid burst detection
+                    await randomDelay(100, 1500);
+
+                    taskPage = await getNewPage();
+                    logger.info(`[${task.name}] Tab opened`);
+
+                    await navigateToDetail(taskPage, baseUrl, task.name);
+
+                    const data = await safeExtract(task.name, () => task.fn(taskPage));
+                    result[task.targetField] = data;
+
+                    logger.info(`[${task.name}] Done`);
+                } catch (err) {
+                    logger.error(`[${task.name}] Failed: ${err.message}`);
+                } finally {
+                    if (taskPage) await taskPage.close();
+                }
+            });
+
+            await Promise.all(promises);
+            await humanDelay(); // Rest between batches
         }
 
         // ── 8. Posts (Activity) ──
