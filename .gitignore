@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+.pnpm-debug.log
+npm-debug.log
+yarn-error.log
+
+# Environment & Secrets
+.env
+.DS_Store
+
+# Build Output
+dist/
+build/
+
+# Playwright / Browser Data
+user_data/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Debug Logs
+debug/
+*.log
+*.html
+*.png
+*.jpg
+*.jpeg

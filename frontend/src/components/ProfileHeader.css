@@ -1,0 +1,174 @@
+.profile-header {
+    margin-bottom: 24px;
+    padding: 0;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid var(--border-glass);
+}
+
+.profile-header__banner-container {
+    width: 100%;
+    height: 200px;
+    background: #333;
+    position: relative;
+}
+
+.profile-header__banner {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-header__banner--placeholder {
+    background: linear-gradient(45deg, var(--bg-primary), var(--bg-secondary));
+    opacity: 0.8;
+}
+
+.profile-header__content {
+    padding: 0 1.5rem 1.5rem 1.5rem;
+    position: relative;
+}
+
+.profile-header__top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 16px;
+    height: 60px;
+    /* Placeholder for spacing */
+}
+
+.profile-header__avatar-wrap {
+    position: relative;
+    margin-top: -100px;
+    /* Pull avatar up */
+    width: 152px;
+    height: 152px;
+    border-radius: 50%;
+    padding: 4px;
+    /* White ring effect */
+    background: var(--bg-primary);
+    /* Match card bg */
+}
+
+.profile-header__avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid var(--bg-primary);
+    background: var(--bg-secondary);
+}
+
+.profile-header__avatar--placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.otw-badge {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #057642;
+    /* LinkedIn Green */
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+    white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.profile-header__info {
+    margin-top: 12px;
+}
+
+.profile-header__main {
+    margin-bottom: 12px;
+}
+
+.profile-header__name {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    line-height: 1.2;
+}
+
+.profile-header__headline {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    font-weight: 400;
+}
+
+.profile-header__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.meta-item svg {
+    color: var(--text-secondary);
+}
+
+.profile-header__about {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-glass);
+}
+
+.section-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+}
+
+.about-text {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    white-space: pre-line;
+}
+
+@media (max-width: 600px) {
+    .profile-header__banner-container {
+        height: 120px;
+    }
+
+    .profile-header__avatar-wrap {
+        width: 100px;
+        height: 100px;
+        margin-top: -60px;
+        margin-left: -8px;
+        /* Adjust visual center slightly */
+    }
+
+    .profile-header__top-row {
+        height: 40px;
+    }
+
+    .profile-header__name {
+        font-size: 1.4rem;
+    }
+}

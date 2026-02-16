@@ -1,0 +1,130 @@
+/* ─── App Layout ─── */
+.app {
+    min-height: 100vh;
+    padding: 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.app-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+
+.app-header h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+}
+
+.app-header p {
+    color: var(--text-muted);
+    font-size: 1rem;
+}
+
+/* ─── Auth Status Bar ─── */
+.auth-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 12px 20px;
+    border-radius: var(--radius-md);
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+}
+
+.auth-bar--valid {
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    color: var(--accent-green);
+}
+
+.auth-bar--invalid {
+    background: rgba(244, 63, 94, 0.08);
+    border: 1px solid rgba(244, 63, 94, 0.2);
+    color: var(--accent-rose);
+}
+
+.auth-bar button {
+    padding: 6px 16px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    background: var(--accent-gradient);
+    color: white;
+    transition: opacity 0.2s;
+}
+
+.auth-bar button:hover {
+    opacity: 0.85;
+}
+
+.auth-bar button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ─── Results Section ─── */
+.results {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.results-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px 20px;
+}
+
+/* ─── Export Button ─── */
+.export-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-glass);
+    background: var(--bg-glass);
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.export-btn:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--accent-purple);
+}
+
+/* ─── Error Display ─── */
+.error-display {
+    padding: 20px;
+    border-radius: var(--radius-md);
+    background: rgba(244, 63, 94, 0.08);
+    border: 1px solid rgba(244, 63, 94, 0.2);
+    color: var(--accent-rose);
+    text-align: center;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 768px) {
+    .app {
+        padding: 1rem;
+    }
+
+    .app-header h1 {
+        font-size: 1.6rem;
+    }
+}
