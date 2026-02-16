@@ -52,81 +52,77 @@ async function scrapeProfile(profileUrl) {
     const baseUrl = profileUrl.replace(/\/$/, '');
 
     try {
-        // ── 1. Main Profile (Header, About, Contact) ──
-        logger.info(`Navigating to Main Profile: ${baseUrl}`);
-        await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
-        await waitForPageLoad(page, 'h1, .pv-text-details__left-panel');
+        // ── Batch 1: Main Profile, Recommendations, Accomplishments ──
+        logger.info('Starting Batch 1: Profile, Recommendations, Accomplishments');
 
-        // Check Auth
-        checkUrlAuth(page);
+        // Tab 1: Main Profile (runs on the primary page)
+        const batch1Promises = [
+            (async () => {
+                logger.info('[profile] Navigating to Main Profile');
+                await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
+                await waitForPageLoad(page, 'h1, .pv-text-details__left-panel');
+                checkUrlAuth(page);
+                await humanScroll(page);
+                result.profile = await safeExtract('profile', () => extractProfile(page));
+                result.contact = await safeExtract('contact', () => extractContact(page));
+                logger.info('[profile] Done');
+            })(),
+            // Tab 2: Recommendations
+            (async () => {
+                const p = await getNewPage();
+                try {
+                    await randomDelay(500, 1500);
+                    logger.info('[recommendations] Tab opened');
+                    await p.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
+                    result.recommendations = await safeExtract('recommendations', () => extractRecommendations(p));
+                    logger.info('[recommendations] Done');
+                } finally { if (p) await p.close(); }
+            })(),
+            // Tab 3: Accomplishments
+            (async () => {
+                const p = await getNewPage();
+                try {
+                    await randomDelay(1000, 2000);
+                    logger.info('[accomplishments] Tab opened');
+                    await p.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
+                    result.accomplishments = await safeExtract('accomplishments', () => extractAccomplishments(p));
+                    logger.info('[accomplishments] Done');
+                } finally { if (p) await p.close(); }
+            })()
+        ];
 
-        // Scroll to load basic info
-        await humanScroll(page);
-        await randomDelay(1000, 2000);
-        await page.evaluate(() => window.scrollTo(0, 0));
+        await Promise.all(batch1Promises);
+        await humanDelay();
 
-        // Basic Profile Info
-        result.profile = await safeExtract('profile', () => extractProfile(page));
-        result.contact = await safeExtract('contact', () => extractContact(page));
-        // Recommendations often on main page or own tab, but let's grab from main for now or add detail support later
-        result.recommendations = await safeExtract('recommendations', () => extractRecommendations(page));
-        // Accomplishments (Languages, Honors) - grabbing from main for now as they are small
-        result.accomplishments = await safeExtract('accomplishments', () => extractAccomplishments(page));
-
-        // ── 2-7. Detail Pages (Parallel Execution) ──
-        // Define all detail extractors
-        const detailTasks = [
+        // ── Batch 2: Experience, Education, Certifications ──
+        logger.info('Starting Batch 2: Experience, Education, Certifications');
+        const batch2Tasks = [
             { name: 'experience', fn: (p) => extractExperience(p), targetField: 'experience' },
             { name: 'education', fn: (p) => extractEducation(p), targetField: 'education' },
-            { name: 'certifications', fn: (p) => extractCertifications(p), targetField: 'certifications' },
+            { name: 'certifications', fn: (p) => extractCertifications(p), targetField: 'certifications' }
+        ];
+        await runBatch(batch2Tasks, baseUrl, result);
+        await humanDelay();
+
+        // ── Batch 3: Skills, Projects, Interests ──
+        logger.info('Starting Batch 3: Skills, Projects, Interests');
+        const batch3Tasks = [
             { name: 'skills', fn: (p) => extractSkills(p), targetField: 'skills' },
             { name: 'projects', fn: (p) => extractProjects(p), targetField: 'projects' },
             { name: 'interests', fn: (p) => extractInterests(p), targetField: 'interests' }
         ];
+        await runBatch(batch3Tasks, baseUrl, result);
+        await humanDelay();
 
-        // Process tasks in batches to manage concurrency
-        const CONCURRENCY_LIMIT = 3;
-        const taskChunks = [];
-        for (let i = 0; i < detailTasks.length; i += CONCURRENCY_LIMIT) {
-            taskChunks.push(detailTasks.slice(i, i + CONCURRENCY_LIMIT));
-        }
-
-        for (const chunk of taskChunks) {
-            logger.info(`Starting parallel batch: ${chunk.map(t => t.name).join(', ')}`);
-
-            const promises = chunk.map(async (task) => {
-                let taskPage = null;
-                try {
-                    // Stagger start times to avoid burst detection
-                    await randomDelay(100, 1500);
-
-                    taskPage = await getNewPage();
-                    logger.info(`[${task.name}] Tab opened`);
-
-                    await navigateToDetail(taskPage, baseUrl, task.name);
-
-                    const data = await safeExtract(task.name, () => task.fn(taskPage));
-                    result[task.targetField] = data;
-
-                    logger.info(`[${task.name}] Done`);
-                } catch (err) {
-                    logger.error(`[${task.name}] Failed: ${err.message}`);
-                } finally {
-                    if (taskPage) await taskPage.close();
-                }
-            });
-
-            await Promise.all(promises);
-            await humanDelay(); // Rest between batches
-        }
-
-        // ── 8. Posts (Activity) ──
-        // extractPosts handles its own navigation to /recent-activity/
+        // ── Final: Posts & Images (Reuse Main Page) ──
+        logger.info('Starting Final Batch: Posts & Images');
+        // We reuse the main `page` which is likely still on the profile or close to it
         result.posts = await safeExtract('posts', () => extractPosts(page, baseUrl));
 
-        // ── 9. Images (Final Pass) ──
-        // Navigate back to main profile to grab any images we missed from the DOM context
-        await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        // Ensure we are back on main profile for images if posts moved us
+        if (!page.url().includes(baseUrl)) {
+            await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+        }
         result.images = await safeExtract('images', () => extractImages(page, result));
 
         // ── Meta ──
@@ -149,6 +145,29 @@ async function scrapeProfile(profileUrl) {
     }
 
     return result;
+}
+
+/**
+ * Helper to run a batch of detail tasks
+ */
+async function runBatch(tasks, baseUrl, result) {
+    const promises = tasks.map(async (task) => {
+        let p = null;
+        try {
+            await randomDelay(200, 2000); // Stagger
+            p = await getNewPage();
+            logger.info(`[${task.name}] Tab opened`);
+            await navigateToDetail(p, baseUrl, task.name);
+            const data = await safeExtract(task.name, () => task.fn(p));
+            result[task.targetField] = data;
+            logger.info(`[${task.name}] Done`);
+        } catch (e) {
+            logger.error(`[${task.name}] Failed: ${e.message}`);
+        } finally {
+            if (p) await p.close();
+        }
+    });
+    await Promise.all(promises);
 }
 
 /**
