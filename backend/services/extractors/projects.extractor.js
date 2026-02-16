@@ -20,52 +20,66 @@ async function extractProjects(page) {
 
     const projects = await page.evaluate(() => {
         const results = [];
-        // Support both main structure and finite scroll container
-        const container = document.querySelector('.scaffold-finite-scroll') || document.querySelector('main');
+        const container = document.querySelector('.scaffold-finite-scroll') ||
+            document.querySelector('[data-testid="lazy-column"]') ||
+            document.querySelector('main');
+
         if (!container) return [];
 
-        // Select items (robust against SDUI changes)
-        // Usually li with pvs-list classes or divs
-        // Added .pvs-list__container for broader match
-        // Added componentkey for SDUI items
-        const items = container.querySelectorAll(
-            'li.pvs-list__paged-list-item, li.artdeco-list__item, div[role="listitem"], .pvs-list__container > div, div[componentkey^="entity-collection-item"]'
-        );
+        // Strategy: Get all direct children of the lazy list or container
+        // Filter those that actually contain content (not just dividers)
+        const items = Array.from(container.children);
 
         items.forEach((item) => {
             try {
-                // Extract text content recursively
-                const spans = item.querySelectorAll('span[aria-hidden="true"]');
-                const texts = Array.from(spans).map(s => s.innerText.trim()).filter(Boolean);
+                // Skip dividers/separators
+                if (item.tagName === 'HR' || item.clientHeight < 10) return;
 
-                if (texts.length === 0) return;
+                // Get all text content efficiently
+                const textRaw = item.innerText || '';
+                const lines = textRaw.split('\n').map(l => l.trim()).filter(Boolean);
 
-                // Typical structure:
-                // 0: Project Name
-                // 1: Date Range (e.g. "Jan 2023 - Present")
-                // 2+: Description or Associated with...
+                // Filter out common UI noise
+                const cleanLines = lines.filter(l =>
+                    !['Show more', 'Show less', 'Projects', 'Skills:'].includes(l) &&
+                    !l.match(/^See .* members/)
+                );
+
+                if (cleanLines.length < 2) return; // Need at least Title and something else
+
+                // Heuristic Mapping
+                // 0: Title
+                // 1: Date or Subtitle
+                // ... Description ...
 
                 const entry = {
-                    title: texts[0],
+                    title: cleanLines[0],
                     dateRange: null,
                     description: null,
-                    link: item.querySelector('a.link-without-visited-state')?.href || null
+                    link: item.querySelector('a')?.href || null,
+                    skills: null
                 };
 
-                // Heuristic Parsing
-                if (texts.length > 1) {
-                    // Check if second item looks like a date
-                    const dateRegex = /((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s?\d{4}|Present)/i;
-                    if (dateRegex.test(texts[1])) {
-                        entry.dateRange = texts[1];
-                        // Description is everything after
-                        if (texts.length > 2) {
-                            entry.description = texts.slice(2).join('\n');
-                        }
-                    } else {
-                        // Maybe no date? assume description
-                        entry.description = texts.slice(1).join('\n');
-                    }
+                // Remove Title from lines to process rest
+                cleanLines.shift();
+
+                // Check for Date in remaining lines
+                const dateRegex = /((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s?\d{4}.*|Present)/i;
+                if (cleanLines.length > 0 && dateRegex.test(cleanLines[0])) {
+                    entry.dateRange = cleanLines[0];
+                    cleanLines.shift();
+                }
+
+                // Check for Skills (often starts with "Skills:")
+                const skillsIndex = cleanLines.findIndex(l => l.startsWith('Skills:'));
+                if (skillsIndex !== -1) {
+                    entry.skills = cleanLines[skillsIndex].replace('Skills:', '').trim();
+                    cleanLines.splice(skillsIndex, 1);
+                }
+
+                // Remaining is description
+                if (cleanLines.length > 0) {
+                    entry.description = cleanLines.join('\n');
                 }
 
                 results.push(entry);

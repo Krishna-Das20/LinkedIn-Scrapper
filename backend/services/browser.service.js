@@ -42,7 +42,18 @@ async function getContext() {
                 '--ignore-certificate-errors',
                 '--ignore-certificate-errors-spki-list',
                 '--disable-features=VizDisplayCompositor',
+                '--disable-background-timer-throttling',
+                '--disable-backgrounding-occluded-windows',
+                '--disable-renderer-backgrounding',
             ],
+            ignoreDefaultArgs: ['--enable-automation'], // Stealth: Hides "Chrome is being controlled by automated test software"
+        });
+
+        // Stealth: Spoof navigator.webdriver
+        await browserContext.addInitScript(() => {
+            Object.defineProperty(navigator, 'webdriver', {
+                get: () => undefined,
+            });
         });
 
         browserContext.on('close', () => {
@@ -174,11 +185,52 @@ async function checkSession() {
     }
 }
 
+/**
+ * Simulates human-like scrolling behavior.
+ * Scrolls down in variable steps with pauses.
+ */
+async function humanScroll(page) {
+    try {
+        const height = await page.evaluate(() => document.body.scrollHeight);
+        let currentScroll = 0;
+
+        while (currentScroll < height) {
+            const step = 300 + Math.floor(Math.random() * 400); // Scroll 300-700px
+            currentScroll += step;
+            await page.mouse.wheel(0, step);
+
+            // Random pause between scrolls (reading time)
+            if (Math.random() > 0.7) {
+                await randomDelay(800, 2000);
+            } else {
+                await randomDelay(100, 400);
+            }
+
+            // Occasionally scroll up a bit (micro-browsing)
+            if (Math.random() > 0.9) {
+                await page.mouse.wheel(0, -100);
+                await randomDelay(300, 600);
+            }
+        }
+    } catch (e) {
+        logger.warn(`Human scroll failed: ${e.message}`);
+    }
+}
+
+/**
+ * Enhanced random delay.
+ */
+async function humanDelay() {
+    await randomDelay(1000, 4000);
+}
+
 module.exports = {
     getContext,
     getPage,
     closeBrowser,
     ensureLoggedIn,
     login,
-    checkSession
+    checkSession,
+    humanScroll,
+    humanDelay
 };

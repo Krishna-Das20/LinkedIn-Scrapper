@@ -18,29 +18,29 @@ async function extractInterests(page) {
 
     const interests = await page.evaluate(() => {
         const results = [];
-        const container = document.querySelector('.scaffold-finite-scroll') || document.querySelector('main');
+        const container = document.querySelector('.scaffold-finite-scroll') ||
+            document.querySelector('[data-testid="lazy-column"]') ||
+            document.querySelector('main');
+
         if (!container) return [];
 
-        // Interests might be in a list or grid
-        // Interests might be in a list or grid
-        // Added componentkey for SDUI items
-        const items = container.querySelectorAll(
-            'li.pvs-list__paged-list-item, li.artdeco-list__item, div[role="listitem"], .entity-result, div[componentkey^="entity-collection-item"]'
-        );
+        const items = Array.from(container.children);
 
         items.forEach((item) => {
             try {
-                // Name is usually the first strong text or aria-hidden span
-                const nameEl = item.querySelector('span[aria-hidden="true"]');
-                const name = nameEl ? nameEl.innerText.trim() : null;
+                if (item.tagName === 'HR' || item.clientHeight < 10) return;
 
-                if (!name) return;
+                const textRaw = item.innerText || '';
+                const lines = textRaw.split('\n').map(l => l.trim()).filter(Boolean);
 
-                const link = item.querySelector('a[data-field="image_link"], a.app-aware-link')?.href || null;
+                // Filter noise
+                const cleanLines = lines.filter(l => !['Show more', 'Show less', 'Interests'].includes(l));
 
-                // Sometimes the "subtitle" (e.g. Followers count) is separated
-                const subtitleEl = item.querySelector('.entity-result__secondary-subtitle, .pvs-entity__sub-components');
-                const subtitle = subtitleEl ? subtitleEl.innerText.trim() : null;
+                if (cleanLines.length === 0) return;
+
+                const link = item.querySelector('a')?.href || null;
+                const name = cleanLines[0];
+                const subtitle = cleanLines.length > 1 ? cleanLines[1] : null;
 
                 results.push({
                     name,

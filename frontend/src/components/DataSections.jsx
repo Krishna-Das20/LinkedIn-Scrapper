@@ -8,6 +8,8 @@ const Icons = {
     Posts: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>,
     Recommendations: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>,
     Certifications: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>,
+    Projects: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>,
+    Interests: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg>,
     Contact: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>,
     Accomplishments: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg>,
     Gallery: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>,
@@ -193,6 +195,66 @@ export function CertificationsSection({ certifications }) {
                         {cert.credentialUrl && (
                             <a href={cert.credentialUrl} target="_blank" rel="noreferrer" className="data-item__link">Show credential →</a>
                         )}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+/* ─── Projects Section ─── */
+export function ProjectsSection({ projects }) {
+    if (!projects || projects.length === 0) return null;
+
+    return (
+        <div className="glass-card data-section fade-in">
+            <h3 className="section-title"><span className="icon-wrap"><Icons.Projects /></span> Projects</h3>
+            <div className="stagger">
+                {projects.map((proj, i) => (
+                    <div key={i} className="data-item">
+                        <div className="data-item__header">
+                            <div className="data-item__info">
+                                <h4 className="data-item__title">
+                                    {proj.link ? (
+                                        <a href={proj.link} target="_blank" rel="noreferrer" className="link-hover">
+                                            {proj.title} ↗
+                                        </a>
+                                    ) : (
+                                        proj.title
+                                    )}
+                                </h4>
+                                {proj.dateRange && <p className="data-item__meta">{proj.dateRange}</p>}
+                            </div>
+                        </div>
+                        {proj.description && <p className="data-item__desc" style={{ whiteSpace: 'pre-line' }}>{proj.description}</p>}
+                        {proj.skills && (
+                            <div className="data-item__skills">
+                                <strong>Skills:</strong> {proj.skills}
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+/* ─── Interests Section ─── */
+export function InterestsSection({ interests }) {
+    if (!interests || interests.length === 0) return null;
+
+    return (
+        <div className="glass-card data-section fade-in">
+            <h3 className="section-title"><span className="icon-wrap"><Icons.Interests /></span> Interests</h3>
+            <div className="interests-grid">
+                {interests.map((item, i) => (
+                    <div key={i} className="interest-tag">
+                        {item.link ? (
+                            <a href={item.link} target="_blank" rel="noreferrer">{item.name}</a>
+                        ) : (
+                            <span>{item.name}</span>
+                        )}
+                        {item.subtitle && <span className="interest-tag__sub">{item.subtitle}</span>}
                     </div>
                 ))}
             </div>

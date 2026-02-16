@@ -254,6 +254,44 @@
     font-weight: 700;
 }
 
+/* ─── Interests Grid ─── */
+.interests-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.interest-tag {
+    display: inline-flex;
+    flex-direction: column;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-glass);
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.interest-tag a {
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+.interest-tag:hover {
+    background: rgba(139, 92, 246, 0.1);
+    border-color: rgba(139, 92, 246, 0.3);
+    transform: translateY(-1px);
+}
+
+.interest-tag__sub {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
 /* ─── Posts Feed ─── */
 .posts-feed {
     display: flex;

@@ -2,9 +2,9 @@
  * Scraper orchestrator — rewritten with multi-page Detail scraping strategy.
  */
 const logger = require('../utils/logger');
-const { getPage, ensureLoggedIn } = require('./browser.service');
+const { getPage, ensureLoggedIn, humanScroll, humanDelay } = require('./browser.service');
 const cacheService = require('./cache.service');
-const { scrollToBottom } = require('../utils/scroll');
+// const { scrollToBottom } = require('../utils/scroll'); // Deprecated for stealth
 const { randomDelay } = require('../utils/delay');
 const fs = require('fs');
 const path = require('path');
@@ -61,7 +61,7 @@ async function scrapeProfile(profileUrl) {
         checkUrlAuth(page);
 
         // Scroll to load basic info
-        await scrollToBottom(page, 5);
+        await humanScroll(page);
         await randomDelay(1000, 2000);
         await page.evaluate(() => window.scrollTo(0, 0));
 
@@ -73,29 +73,29 @@ async function scrapeProfile(profileUrl) {
         // Accomplishments (Languages, Honors) - grabbing from main for now as they are small
         result.accomplishments = await safeExtract('accomplishments', () => extractAccomplishments(page));
 
-        // ── 2. Experience Details ──
-        await navigateToDetail(page, baseUrl, 'experience');
-        result.experience = await safeExtract('experience', () => extractExperience(page));
+        // ── 2-7. Detail Pages (Randomized Order) ──
+        // Define all detail extractors
+        const detailTasks = [
+            { name: 'experience', fn: async () => { await navigateToDetail(page, baseUrl, 'experience'); result.experience = await safeExtract('experience', () => extractExperience(page)); } },
+            { name: 'education', fn: async () => { await navigateToDetail(page, baseUrl, 'education'); result.education = await safeExtract('education', () => extractEducation(page)); } },
+            { name: 'certifications', fn: async () => { await navigateToDetail(page, baseUrl, 'certifications'); result.certifications = await safeExtract('certifications', () => extractCertifications(page)); } },
+            { name: 'skills', fn: async () => { await navigateToDetail(page, baseUrl, 'skills'); result.skills = await safeExtract('skills', () => extractSkills(page)); } },
+            { name: 'projects', fn: async () => { await navigateToDetail(page, baseUrl, 'projects'); result.projects = await safeExtract('projects', () => extractProjects(page)); } },
+            { name: 'interests', fn: async () => { await navigateToDetail(page, baseUrl, 'interests'); result.interests = await safeExtract('interests', () => extractInterests(page)); } }
+        ];
 
-        // ── 3. Education Details ──
-        await navigateToDetail(page, baseUrl, 'education');
-        result.education = await safeExtract('education', () => extractEducation(page));
+        // Shuffle tasks
+        for (let i = detailTasks.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [detailTasks[i], detailTasks[j]] = [detailTasks[j], detailTasks[i]];
+        }
 
-        // ── 4. Certifications Details ──
-        await navigateToDetail(page, baseUrl, 'certifications');
-        result.certifications = await safeExtract('certifications', () => extractCertifications(page));
-
-        // ── 5. Skills Details ──
-        await navigateToDetail(page, baseUrl, 'skills');
-        result.skills = await safeExtract('skills', () => extractSkills(page));
-
-        // ── 6. Projects Details ──
-        await navigateToDetail(page, baseUrl, 'projects');
-        result.projects = await safeExtract('projects', () => extractProjects(page));
-
-        // ── 7. Interests Details ──
-        await navigateToDetail(page, baseUrl, 'interests');
-        result.interests = await safeExtract('interests', () => extractInterests(page));
+        // Execute sequentially
+        for (const task of detailTasks) {
+            logger.info(`Executing step: ${task.name}`);
+            await task.fn();
+            await humanDelay(); // Stealth delay between sections
+        }
 
         // ── 8. Posts (Activity) ──
         // extractPosts handles its own navigation to /recent-activity/
@@ -142,8 +142,8 @@ async function navigateToDetail(page, baseUrl, section) {
         // If it's a 404 or empty, we might just timeout/fail gracefully
         await page.waitForSelector('main, .scaffold-finite-scroll', { timeout: 10000 });
 
-        await randomDelay(1000, 2000);
-        await scrollToBottom(page, 8); // Deep scroll to load all items
+        await humanDelay();
+        await humanScroll(page); // Use human-like scrolling
         await randomDelay(500, 1000);
 
     } catch (e) {

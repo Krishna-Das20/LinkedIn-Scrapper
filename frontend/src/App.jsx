@@ -9,6 +9,8 @@ import {
     PostsFeed,
     RecommendationsSection,
     CertificationsSection,
+    ProjectsSection,
+    InterestsSection,
     ContactInfo,
     AccomplishmentsSection,
     ImageGallery,
@@ -122,7 +124,9 @@ export default function App() {
                     <SkillsGrid skills={scrapedData.skills} />
                     <PostsFeed posts={scrapedData.posts} />
                     <RecommendationsSection recommendations={scrapedData.recommendations} />
+                    <ProjectsSection projects={scrapedData.projects} />
                     <CertificationsSection certifications={scrapedData.certifications} />
+                    <InterestsSection interests={scrapedData.interests} />
                     <ContactInfo contact={scrapedData.contact} />
                     <AccomplishmentsSection accomplishments={scrapedData.accomplishments} />
                     <ImageGallery images={scrapedData.images} />

@@ -39,25 +39,75 @@ async function extractCertifications(page) {
 
     const certifications = await page.evaluate(() => {
         const results = [];
-        const container = document.querySelector('[data-view-name="profile-card-licenses-and-certifications"]') ||
-            document.querySelector('.scaffold-finite-scroll') ||
-            document.querySelector('main');
+        let items = [];
 
-        if (!container) return results;
+        // Strategy 1: Find by Header Text
+        const headers = Array.from(document.querySelectorAll('h2, span, p, div'));
+        const header = headers.find(el => el.innerText && el.innerText.trim() === 'Licenses & certifications');
 
-        const items = container.querySelectorAll('li.artdeco-list__item, li.pvs-list__paged-list-item, ul.pvs-list > li');
+        if (header) {
+            let parent = header.parentElement;
+            console.log('Traversal: Starting from header');
+            for (let i = 0; i < 6; i++) {
+                if (parent) {
+                    console.log(`Traversal: Level ${i}, Tag: ${parent.tagName}, Children: ${parent.children.length}, Class: ${parent.className}`);
+                    if (parent.children.length > 5) { // Increased threshold to be safe
+                        console.log('Traversal: Found valid container');
+                        items = Array.from(parent.children);
+                        break;
+                    }
+                    parent = parent.parentElement;
+                }
+            }
+        }
 
-        items.forEach((item) => {
+        // Strategy 2: Fallback to known containers if Step 1 failed
+        if (items.length === 0) {
+            console.log('Traversal: Failed, using fallback containers');
+            const container = document.querySelector('[data-testid="lazy-column"]') ||
+                document.querySelector('.scaffold-finite-scroll') ||
+                document.querySelector('[data-view-name="profile-card-licenses-and-certifications"]') ||
+                document.querySelector('main');
+
+            if (container) {
+                items = Array.from(container.children);
+
+                // Descent logic: If few items, look for a wrapper with many children
+                if (items.length < 5) {
+                    const wrapper = items.find(el => el.children.length > 5);
+                    if (wrapper) {
+                        console.log('Traversal: Descending into wrapper');
+                        items = Array.from(wrapper.children);
+                    }
+                }
+            }
+        }
+
+        console.log(`Found ${items.length} items to process`);
+
+        items.forEach((item, index) => {
             try {
-                const spans = item.querySelectorAll('span[aria-hidden="true"]');
-                const texts = Array.from(spans).map((s) => s.innerText.trim()).filter(Boolean);
-                const logo = item.querySelector('img')?.src || null;
-                const link = item.querySelector('a[href*="credential"]')?.href || null;
+                if (item.tagName === 'HR') return;
 
-                if (texts.length === 0) return;
+                // Check if this item likely contains a certification (has image or dates)
+                // or if it's just a spacer/header
+                const textRaw = item.innerText || '';
+                if (!textRaw.trim()) return;
+
+                const lines = textRaw.split('\n').map(l => l.trim()).filter(Boolean);
+
+                // Skip the header itself if it's in the list
+                if (lines.includes('Licenses & certifications')) return;
+
+                const cleanLines = lines.filter(l => !['Show more', 'Show less', 'Back'].includes(l));
+
+                if (cleanLines.length === 0) return;
+
+                const logo = item.querySelector('img')?.src || null;
+                const link = item.querySelector('a')?.href || null;
 
                 const entry = {
-                    name: texts[0] || null,
+                    name: cleanLines[0],
                     issuingOrganization: null,
                     issueDate: null,
                     expirationDate: null,
@@ -66,11 +116,11 @@ async function extractCertifications(page) {
                     logo,
                 };
 
-                // Heuristic parsing
-                if (texts.length > 1) entry.issuingOrganization = texts[1];
+                if (cleanLines.length > 1) entry.issuingOrganization = cleanLines[1];
 
-                for (let i = 2; i < texts.length; i++) {
-                    const t = texts[i];
+                // Heuristic parsing for remaining lines
+                for (let i = 2; i < cleanLines.length; i++) {
+                    const t = cleanLines[i];
                     if (/issued/i.test(t)) {
                         entry.issueDate = t.replace(/^issued\s*/i, '').trim();
                     } else if (/credential\s*id/i.test(t)) {
@@ -78,7 +128,7 @@ async function extractCertifications(page) {
                     } else if (/expir/i.test(t)) {
                         entry.expirationDate = t.trim();
                     } else if (!entry.issueDate && /\b\d{4}\b/.test(t)) {
-                        entry.issueDate = t; // Fallback date detection
+                        entry.issueDate = t;
                     }
                 }
 
