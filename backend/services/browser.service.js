@@ -204,21 +204,21 @@ async function humanScroll(page) {
         let currentScroll = 0;
 
         while (currentScroll < height) {
-            const step = 300 + Math.floor(Math.random() * 400); // Scroll 300-700px
+            const step = 600 + Math.floor(Math.random() * 600); // Hyper: Scroll 600-1200px
             currentScroll += step;
             await page.mouse.wheel(0, step);
 
-            // Random pause between scrolls (reading time)
-            if (Math.random() > 0.7) {
-                await randomDelay(800, 2000);
+            // Hyper: Minimal pauses
+            if (Math.random() > 0.6) {
+                await randomDelay(300, 800);
             } else {
-                await randomDelay(100, 400);
+                await randomDelay(50, 200);
             }
 
-            // Occasionally scroll up a bit (micro-browsing)
-            if (Math.random() > 0.9) {
+            // Hyper: Very rare micro-browsing
+            if (Math.random() > 0.98) {
                 await page.mouse.wheel(0, -100);
-                await randomDelay(300, 600);
+                await randomDelay(100, 300);
             }
         }
     } catch (e) {
@@ -230,7 +230,7 @@ async function humanScroll(page) {
  * Enhanced random delay.
  */
 async function humanDelay() {
-    await randomDelay(1000, 4000);
+    await randomDelay(1000, 2500); // Turbo: Cap at 2.5s
 }
 
 module.exports = {

@@ -195,8 +195,8 @@ async function navigateToDetail(page, baseUrl, section) {
 }
 
 async function waitForPageLoad(page, selector) {
-    await page.waitForSelector(selector, { timeout: 20000 }).catch(() => logger.warn('Element wait timeout'));
-    await randomDelay(2000, 4000);
+    await page.waitForSelector(selector, { timeout: 15000 }).catch(() => logger.warn('Element wait timeout'));
+    await randomDelay(500, 1500); // Turbo: Reduced safety buffer
 }
 
 function checkUrlAuth(page) {

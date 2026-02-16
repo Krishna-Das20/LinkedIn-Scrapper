@@ -13,9 +13,9 @@ async function extractPosts(page, profileUrl, maxPosts = 10) {
     try {
         await page.goto(activityUrl, {
             waitUntil: 'domcontentloaded',
-            timeout: 25000,
+            timeout: 20000,
         });
-        await randomDelay(3000, 5000);
+        await randomDelay(1000, 2500); // Turbo: Faster navigation wait
     } catch (err) {
         logger.warn(`Failed to navigate to activity page: ${err.message}`);
         return [];
@@ -33,8 +33,8 @@ async function extractPosts(page, profileUrl, maxPosts = 10) {
     }
 
     // Scroll to load more posts
-    await scrollToBottom(page, Math.min(maxPosts / 2, 5));
-    await randomDelay(1000, 2000);
+    await scrollToBottom(page, Math.min(maxPosts / 2, 3)); // Turbo: limit scroll depth
+    await randomDelay(500, 1000); // Turbo: shorter wait
 
     const posts = await page.evaluate((max) => {
         const results = [];

@@ -5,7 +5,7 @@
 /**
  * Wait for a random duration between min and max milliseconds.
  */
-function randomDelay(min = 800, max = 2500) {
+function randomDelay(min = 500, max = 1500) {
     const ms = Math.floor(Math.random() * (max - min + 1)) + min;
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
